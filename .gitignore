@@ -1,0 +1,4 @@
+private
+/terraform/.terraform*
+/terraform/terraform*
+test

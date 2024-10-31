@@ -1,0 +1,107 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cts-dataloader-service
+  labels:
+    app: cryptostream
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    app: cryptostream
+    tier: dataloader
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cts-dataloader-deployment
+  labels:
+    app: cryptostream
+spec:
+  selector:
+    matchLabels:
+      app: cryptostream
+      tier: dataloader
+  template:
+    metadata:
+      labels:
+        app: cryptostream
+        tier: dataloader
+    spec:
+      containers:
+      - name: dataloader
+        image: python:3.12
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          pip install --no-cache-dir -r CryptoStream/src/requirements.txt && \
+          python CryptoStream/src/upbit_dataloader.py upbit_dataloader1
+        env:
+        - name: POSTGRES_HOST
+          value: cts-postgresql-service
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: cts-postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cts-postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: cts-postgres-secret
+              key: POSTGRES_DB
+        - name: REDIS_HOST
+          value: cts-redis-service
+        - name: REDIS_PORT
+          value: "6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cts-redis-secret
+              key: REDIS_PASSWORD
+        volumeMounts:
+        - name: cts-persistent-storage
+          mountPath: CryptoStream
+      volumes:
+      - name: cts-persistent-storage
+        persistentVolumeClaim:
+          claimName: cts-dataloader-pvc 
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: cts-dataloader-pv
+  labels:
+    app: cryptostream
+spec:
+  storageClassName: cts-dataloader-manual
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  hostPath:
+    path: /mnt/dataloader-pv/CryptoStream-k8s
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cts-dataloader-pvc  
+  labels:
+    app: cryptostream
+spec:
+  storageClassName: cts-dataloader-manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

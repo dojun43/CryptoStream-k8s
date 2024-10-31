@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cts-postgresql-service
+  labels:
+    app: cryptostream
+spec:
+  type: NodePort  
+  ports:
+  - port: 5432
+    targetPort: 5432
+    nodePort: 30000 
+  selector:
+    app: cryptostream
+    tier: postgresql
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cts-postgresql-deployment
+  labels:
+    app: cryptostream
+spec:
+  replicas: 1 
+  selector:
+    matchLabels:
+      app: cryptostream
+      tier: postgresql
+  strategy:
+    type: Recreate  
+  template:
+    metadata:
+      labels:
+        app: cryptostream
+        tier: postgresql
+    spec:
+      containers:
+      - name: postgresql
+        image: postgres:13 
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: cts-postgres-secret
+              key: POSTGRES_USER  
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cts-postgres-secret
+              key: POSTGRES_PASSWORD 
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: cts-postgres-secret
+              key: POSTGRES_DB  
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata  
+        ports:
+        - containerPort: 5432  
+          name: postgresql
+        volumeMounts:
+        - name: postgresql-persistent-storage
+          mountPath: /var/lib/postgresql/data 
+      volumes:
+      - name: postgresql-persistent-storage
+        persistentVolumeClaim:
+          claimName: cts-postgresql-pvc 
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: cts-postgresql-pv
+  labels:
+    app: cryptostream
+spec:
+  storageClassName: cts-postgres-manual
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  hostPath:
+    path: /mnt/postgres-pv 
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cts-postgresql-pvc
+  labels:
+    app: cryptostream
+spec:
+  storageClassName: cts-postgres-manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi 

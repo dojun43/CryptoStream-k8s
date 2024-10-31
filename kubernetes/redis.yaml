@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cts-redis-service
+  labels:
+    app: cryptostream
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6379
+      targetPort: 6379
+  selector:
+    app: cryptostream
+    tier: redis
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cts-redis-deployment
+  labels:
+    app: cryptostream
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cryptostream
+      tier: redis
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: cryptostream
+        tier: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7.2
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cts-redis-secret 
+              key: REDIS_PASSWORD
+        ports:
+        - containerPort: 6379
+          name: redis
+        args:
+        - "--requirepass"
+        - "$(REDIS_PASSWORD)"
