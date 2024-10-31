@@ -40,5 +40,5 @@ sudo systemctl enable kubelet
 echo "End k8s installation" >> /var/log/startup_script.log
 
 # git clone
-sudo -H bash -c "mkdir -p /mnt/dataloader-pv && cd /mnt/dataloader-pv && git clone https://github.com/dojun43/CryptoStream-k8s.git"
+sudo -H bash -c "mkdir -p /mnt/producer-pv && cd /mnt/producer-pv && git clone https://github.com/dojun43/CryptoStream-k8s.git"
 sudo -H bash -c "mkdir -p /mnt/dataloader-pv && cd /mnt/dataloader-pv && git clone https://github.com/dojun43/CryptoStream-k8s.git"
