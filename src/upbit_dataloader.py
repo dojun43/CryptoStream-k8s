@@ -179,7 +179,7 @@ class upbit_dataloader:
                 insert_count = self.insert_data(up_data, insert_count)
             
             except psycopg2.IntegrityError as e:
-                if "partitioned table" in str(e):
+                if "no partition of relation" in str(e):
                     self.pg_conn.rollback()  
                     
                     # create partition
@@ -189,7 +189,7 @@ class upbit_dataloader:
                     insert_count = self.insert_data(up_data, insert_count)
 
                 else:
-                    raise
+                    logging.error(f"upbit dataloader error: {e}")
 
             except (psycopg2.DatabaseError, psycopg2.OperationalError) as e:
                 logging.error(f"Transaction error: {e}")
